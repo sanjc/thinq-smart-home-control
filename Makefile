@@ -1,4 +1,4 @@
-.PHONY: setup run lint clean
+.PHONY: setup run lint format clean
 
 setup:
 	python -m venv .venv
@@ -10,6 +10,9 @@ run:
 lint:
 	. .venv/bin/activate && ruff check .
 	. .venv/bin/activate && python -m compileall app.py
+
+format:
+	. .venv/bin/activate && ruff format .
 
 clean:
 	rm -rf .venv __pycache__
