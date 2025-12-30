@@ -1,4 +1,6 @@
-# ThinQ Oven UI
+# ThinQ Smart Home Control
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 Local Flask UI for controlling LG ThinQ ovens via the community ThinQ Connect API client (`thinqconnect`).
 
@@ -16,6 +18,10 @@ python app.py
 ```
 
 Then open `http://127.0.0.1:5055`.
+
+## Roadmap
+
+See `ROADMAP.md`.
 
 ## Access token + client ID
 
