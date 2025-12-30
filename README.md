@@ -1,8 +1,12 @@
 # ThinQ Smart Home Control
 
+[![CI](https://github.com/sanjc/thinq-smart-home-control/actions/workflows/ci.yml/badge.svg)](https://github.com/sanjc/thinq-smart-home-control/actions/workflows/ci.yml)
+[![Python](https://img.shields.io/badge/Python-3.11-blue.svg)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 Local Flask UI for controlling LG ThinQ ovens via the community ThinQ Connect API client (`thinqconnect`).
+
+Built in collaboration with Codex (AI coding assistant).
 
 ## Setup
 
