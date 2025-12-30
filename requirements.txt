@@ -1,0 +1,5 @@
+Flask
+thinqconnect
+python-dotenv
+aiohttp
+certifi

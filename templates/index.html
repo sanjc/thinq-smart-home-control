@@ -1,0 +1,253 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ThinQ Oven Control</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+  </head>
+  <body>
+    <main class="shell">
+      <header class="hero">
+        <div>
+          <p class="eyebrow">LG ThinQ • Local Control</p>
+          <h1>Oven Control Panel</h1>
+          <p class="lede">Preheat, verify state, and confirm remote control without opening the ThinQ app.</p>
+        </div>
+      </header>
+
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          <section class="messages">
+            {% for category, message in messages %}
+              <div class="message {{ category }}">{{ message }}</div>
+            {% endfor %}
+          </section>
+        {% endif %}
+      {% endwith %}
+
+      {% if config_error %}
+        <section class="panel">
+          <h2>Configure Access</h2>
+          <p class="muted">{{ config_error }}</p>
+          <p>ThinQ Connect uses a Personal Access Token from the LG developer portal.</p>
+          <ol class="steps">
+            <li>Visit the LG ThinQ Developer Site and generate a Personal Access Token.</li>
+            <li>Paste the token below and use a unique client ID (UUID recommended).</li>
+          </ol>
+          <form method="post" action="/save-config" class="stack">
+            <label>
+              Personal Access Token
+              <input name="access_token" type="password" placeholder="PAT from LG developer portal" required />
+            </label>
+            <label>
+              Client ID (UUID)
+              <input name="client_id" type="text" value="{{ suggested_client_id }}" required />
+            </label>
+            <label>
+              Country Code
+              <input name="country" type="text" value="US" />
+            </label>
+            <button type="submit">Save &amp; Continue</button>
+          </form>
+          <p class="muted">Your token stays in a local `.env` file and is never sent elsewhere.</p>
+        </section>
+      {% else %}
+        {% if snapshot and snapshot.devices %}
+          <section class="panel">
+            <h2>Select Device</h2>
+            <form method="get" action="/">
+              <label>
+                Device
+                <select name="device_id">
+                  {% for device in snapshot.devices %}
+                    <option value="{{ device.device_id }}" {% if snapshot.selected and device.device_id == snapshot.selected.device_id %}selected{% endif %}>
+                      {{ device.alias }}{% if device.model_name %} — {{ device.model_name }}{% endif %} ({{ device.device_type | replace("DEVICE_", "") }})
+                    </option>
+                  {% endfor %}
+                </select>
+              </label>
+              <button type="submit">Load</button>
+            </form>
+          </section>
+        {% endif %}
+
+        {% if snapshot and snapshot.selected %}
+          <section class="grid">
+            <div class="panel">
+              <h2>Status</h2>
+              <div class="status-grid">
+                <div>
+                  <p class="label">Operation</p>
+                  <p class="value">{{ snapshot.status.operation or 'Unknown' }}</p>
+                </div>
+                {% if snapshot.status.cook_mode is not none %}
+                  <div>
+                    <p class="label">Cook Mode</p>
+                    <p class="value">{{ snapshot.status.cook_mode or 'Unknown' }}</p>
+                  </div>
+                {% endif %}
+                {% if snapshot.status.state is not none %}
+                  <div>
+                    <p class="label">State</p>
+                    <p class="value">{{ snapshot.status.state or 'Unknown' }}</p>
+                  </div>
+                {% endif %}
+                {% if snapshot.status.target_f is not none or snapshot.status.target_c is not none %}
+                  <div>
+                    <p class="label">Target Temp</p>
+                    <p class="value">
+                      {% if snapshot.unit.upper() == 'C' %}
+                        {{ snapshot.status.target_c or '—' }} °C
+                      {% else %}
+                        {{ snapshot.status.target_f or '—' }} °F
+                      {% endif %}
+                    </p>
+                  </div>
+                {% endif %}
+                <div>
+                  <p class="label">Remote Enabled</p>
+                  <p class="value">{{ snapshot.status.remote_enabled if snapshot.status.remote_enabled is not none else 'Unknown' }}</p>
+                </div>
+              </div>
+              <form method="post" action="/refresh">
+                <input type="hidden" name="device_id" value="{{ snapshot.selected.device_id }}" />
+                {% if snapshot.selected_location %}
+                  <input type="hidden" name="location" value="{{ snapshot.selected_location }}" />
+                {% endif %}
+                <button class="ghost" type="submit">Refresh</button>
+              </form>
+            </div>
+
+            {% if snapshot.cook_modes %}
+              <div class="panel">
+                <h2>Preheat</h2>
+                <form method="post" action="/preheat" class="stack">
+                  <input type="hidden" name="device_id" value="{{ snapshot.selected.device_id }}" />
+                  {% if snapshot.locations %}
+                    <label>
+                      Oven Section
+                      <select name="location">
+                        {% for location in snapshot.locations %}
+                          <option value="{{ location }}" {% if snapshot.selected_location == location %}selected{% endif %}>{{ location }}</option>
+                        {% endfor %}
+                      </select>
+                    </label>
+                  {% endif %}
+                  <label>
+                    Cook Mode
+                    <select name="cook_mode" required>
+                      {% for mode in snapshot.cook_modes %}
+                        <option value="{{ mode }}">{{ mode }}</option>
+                      {% endfor %}
+                    </select>
+                  </label>
+                  <label>
+                    Temperature
+                    <input name="temperature" type="number" min="100" max="550" placeholder="350" required />
+                  </label>
+                  {% if snapshot.temp_hint %}
+                    <p class="hint">Allowed range: {{ snapshot.temp_hint }}</p>
+                  {% endif %}
+                  <label>
+                    Unit
+                    <select name="unit">
+                      <option value="F" {% if snapshot.unit.upper() == 'F' %}selected{% endif %}>Fahrenheit</option>
+                      <option value="C" {% if snapshot.unit.upper() == 'C' %}selected{% endif %}>Celsius</option>
+                    </select>
+                  </label>
+                  <input type="hidden" name="location_override" value="" />
+                  <div class="button-row">
+                    <button type="submit" name="action" value="preheat">Send Preheat</button>
+                    <button class="ghost" type="submit" name="action" value="refresh_preheat">Refresh + Preheat</button>
+                  </div>
+                  {% if snapshot.locations %}
+                    <div class="button-row">
+                      <button class="ghost test-button" type="button" data-location="UPPER">Test Upper</button>
+                      <button class="ghost test-button" type="button" data-location="LOWER">Test Lower</button>
+                    </div>
+                  {% endif %}
+                </form>
+              </div>
+              <div class="panel">
+                <h2>Oven Controls</h2>
+                <form method="post" action="/oven-action" class="stack">
+                  <input type="hidden" name="device_id" value="{{ snapshot.selected.device_id }}" />
+                  {% if snapshot.selected_location %}
+                    <input type="hidden" name="location" value="{{ snapshot.selected_location }}" />
+                  {% endif %}
+                  <div class="button-row">
+                    <button type="submit" name="action" value="start">Start</button>
+                    <button class="ghost" type="submit" name="action" value="stop">Stop</button>
+                  </div>
+                  <div class="button-row">
+                    <button type="submit" name="action" value="remote_on">Remote Enable</button>
+                    <button class="ghost" type="submit" name="action" value="remote_off">Remote Disable</button>
+                  </div>
+                </form>
+                <p class="hint">Remote enable may require the physical knob set to remote.</p>
+              </div>
+            {% endif %}
+          </section>
+
+          {% if snapshot.cooktop_zones %}
+            <section class="panel">
+              <h2>Cooktop Zones</h2>
+              <div class="zone-grid">
+                {% for zone in snapshot.cooktop_zones %}
+                  <div class="zone-card">
+                    <p class="label">{{ zone.location }}</p>
+                    <p class="value">State: {{ zone.state or 'Unknown' }}</p>
+                    <p class="value">Power: {{ zone.power or '—' }}</p>
+                    <p class="value">Remote: {{ zone.remote_enabled if zone.remote_enabled is not none else 'Unknown' }}</p>
+                    <p class="value">Timer: {{ zone.timer.hour or 0 }}h {{ zone.timer.minute or 0 }}m</p>
+                  </div>
+                {% endfor %}
+              </div>
+            </section>
+          {% endif %}
+
+          {% if snapshot.raw_status %}
+            <section class="panel">
+              <h2>Debug Status</h2>
+              <p class="muted">Selected location: {{ snapshot.selected_location or 'None' }}</p>
+              <details>
+                <summary>Raw ThinQ status payload</summary>
+                <pre><code>{{ snapshot.raw_status | tojson(indent=2) }}</code></pre>
+              </details>
+            </section>
+          {% endif %}
+        {% else %}
+          <section class="panel">
+            <h2>No Oven Found</h2>
+            <p class="muted">We couldn't find an oven device on your ThinQ account. Confirm the appliance is visible in the ThinQ app.</p>
+          </section>
+        {% endif %}
+      {% endif %}
+
+      <section class="panel subtle">
+        <h2>Safety</h2>
+        <p class="muted">Only use remote preheat when the oven area is clear. ThinQ may enforce remote start or safety prompts in the official app.</p>
+      </section>
+    </main>
+    <script>
+      const testButtons = document.querySelectorAll(".test-button");
+      testButtons.forEach((button) => {
+        button.addEventListener("click", (event) => {
+          const form = event.target.closest("form");
+          if (!form) return;
+          const locationField = form.querySelector("input[name='location_override']");
+          const actionField = form.querySelector("button[name='action'][value='refresh_preheat']");
+          if (locationField) {
+            locationField.value = event.target.dataset.location || "";
+          }
+          if (actionField) {
+            actionField.click();
+          } else {
+            form.submit();
+          }
+        });
+      });
+    </script>
+  </body>
+</html>
