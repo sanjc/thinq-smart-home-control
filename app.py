@@ -15,8 +15,8 @@ from thinqconnect import (
     PROPERTY_WRITABLE,
     CooktopDevice,
     OvenDevice,
-    ThinQAPIException,
     ThinQApi,
+    ThinQAPIException,
 )
 from thinqconnect.devices.const import Location, Property
 
@@ -426,7 +426,9 @@ async def async_preheat(
 
 
 async def async_oven_action(cfg: ThinQConfig, device_id: str, location: str | None, action: str) -> None:
-    async with ClientSession(connector=TCPConnector(ssl=ssl.create_default_context(cafile=certifi.where()))) as session:
+    async with ClientSession(
+        connector=TCPConnector(ssl=ssl.create_default_context(cafile=certifi.where()))
+    ) as session:
         api = ThinQApi(
             session=session,
             access_token=cfg.access_token,
