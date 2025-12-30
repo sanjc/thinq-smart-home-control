@@ -3,3 +3,4 @@ thinqconnect
 python-dotenv
 aiohttp
 certifi
+ruff

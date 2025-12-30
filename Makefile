@@ -8,6 +8,7 @@ run:
 	. .venv/bin/activate && python app.py
 
 lint:
+	. .venv/bin/activate && ruff check .
 	. .venv/bin/activate && python -m compileall app.py
 
 clean:
